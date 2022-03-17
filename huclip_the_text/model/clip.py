@@ -2,7 +2,7 @@ import os
 
 import transformers
 import pickle
-from multi_rake import Rake
+# from multi_rake import Rake
 import logging
 import numpy as np
 import torch
@@ -113,13 +113,13 @@ class KeywordCLIP:
         :param language_model_name: name of the used language model
         :param image_model_name: name of the used image model
         """
-        self.rake = Rake(
-            min_chars=3, max_words=5, min_freq=1,
-            language_code='hu', stopwords=None,
-            lang_detect_threshold=50, max_words_unknown_lang=2,
-            generated_stopwords_percentile=80, generated_stopwords_max_len=3,
-            generated_stopwords_min_freq=2
-        )
+        # self.rake = Rake(
+        #     min_chars=3, max_words=5, min_freq=1,
+        #     language_code='hu', stopwords=None,
+        #     lang_detect_threshold=50, max_words_unknown_lang=2,
+        #     generated_stopwords_percentile=80, generated_stopwords_max_len=3,
+        #     generated_stopwords_min_freq=2
+        # )
 
         log.info(f'Loading language model: HuSpaCy!')
         huspacy.download()
@@ -166,13 +166,13 @@ class KeywordCLIP:
 
         return keywords
 
-    def extract_keywords_rake(self, sentence: str) -> List[Tuple[str, float]]:
-        """
-        Extracting potential keywords using MultiRake
-        :param sentence: input text
-        :return: List of tuples containing <string, score> pairs
-        """
-        return self.rake.apply(sentence)
+    # def extract_keywords_rake(self, sentence: str) -> List[Tuple[str, float]]:
+    #     """
+    #     Extracting potential keywords using MultiRake
+    #     :param sentence: input text
+    #     :return: List of tuples containing <string, score> pairs
+    #     """
+    #     return self.rake.apply(sentence)
 
     def embedding(self, image: Image.Image, text: str, keyword_extraction_method: Literal["spacy", "rake"] = "spacy"
                   ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
@@ -186,7 +186,7 @@ class KeywordCLIP:
         composed_image = torch.stack([self.compose(image), ])
 
         if keyword_extraction_method == "rake":
-            extracted_keywords = self.extract_keywords_rake(text)
+            raise NotImplementedError(":(")  # extracted_keywords = self.extract_keywords_rake(text)
         elif keyword_extraction_method == "spacy":
             extracted_keywords = self.extract_keywords_spacy(text)
         else:
