@@ -1,23 +1,26 @@
 import pathlib
 import setuptools
-from distutils.command.sdist import sdist as sdist_orig
-from distutils.errors import DistutilsExecError
+import subprocess
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
 
+print('Trying to install pytorch!')
+
+subprocess.call(['pip', 'install', 'torch==1.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
+subprocess.call(['pip', 'install', 'torchvision==0.12.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
+subprocess.call(['pip', 'install', 'torchaudio===0.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
+subprocess.call(['pip', 'install', 'torchaudio===0.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
+subprocess.call(['conda', 'install', '-c', 'conda-forge', 'multi_rake'])
+
 deps_ = [
-    'torch==1.11.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"',
-    'torchvision==0.12.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"',
-    'torchaudio===0.11.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"'
     'ftfy',
     'transformers',
     'huspacy',
     'beautifulsoup4',
     'git+https://github.com/openai/CLIP.git',
-    'git+https://github.com/ficstamas/paddle.git',
-    'multi_rake'
+    'git+https://github.com/ficstamas/paddle.git'
 ]
 
 
