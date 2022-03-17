@@ -16,12 +16,13 @@ subprocess.call(['pip', 'install', 'torch==1.11.0+cu113', 'torchvision==0.12.0+c
 # stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 deps_ = [
-    'ftfy',
-    'transformers',
-    'huspacy',
-    'beautifulsoup4',
-    'clip @ git+https://github.com/openai/CLIP.git',
-    'paddle @ git+https://github.com/ficstamas/paddle.git'
+    'ftfy==6.1.1',
+    'numpy==1.22.3',
+    'transformers==4.17.0',
+    'huspacy==0.4.2',
+    'beautifulsoup4==4.10.0',
+    'clip @ git+https://github.com/openai/CLIP.git@40f5484c1c74edd83cb9cf687c6ab92b28d8b656',
+    'paddle @ git+https://github.com/ficstamas/paddle.git@18012e849e29e8cc23ceab696004f46641f3dc7d'
 ]
 
 
