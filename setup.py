@@ -20,8 +20,8 @@ deps_ = [
     'transformers',
     'huspacy',
     'beautifulsoup4',
-    'git+https://github.com/openai/CLIP.git',
-    'git+https://github.com/ficstamas/paddle.git'
+    'clip @ git+https://github.com/openai/CLIP.git',
+    'paddle @ git+https://github.com/ficstamas/paddle.git'
 ]
 
 
