@@ -28,5 +28,8 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     install_requires=install_requires,
+    dependency_links=[
+        "https://download.pytorch.org/whl/cu113/torch_stable.html",
+    ],
     python_requires=">=3.9"
 )
