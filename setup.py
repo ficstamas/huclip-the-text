@@ -4,6 +4,11 @@ import setuptools
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
+requirements = HERE / 'requirements.txt'
+
+with requirements.open(mode='rt', encoding='utf-8') as fp:
+    install_requires = [line.strip() for line in fp]
+
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
@@ -22,5 +27,6 @@ setuptools.setup(
         "Programming Language :: Python"
     ],
     packages=setuptools.find_packages(),
+    install_requires=install_requires,
     python_requires=">=3.9"
 )
