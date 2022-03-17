@@ -8,11 +8,8 @@ HERE = pathlib.Path(__file__).parent
 
 print('Trying to install pytorch!')
 
-subprocess.call(['pip', 'install', 'torch==1.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
-subprocess.call(['pip', 'install', 'torchvision==0.12.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
-subprocess.call(['pip', 'install', 'torchaudio===0.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
-subprocess.call(['pip', 'install', 'torchaudio===0.11.0+cu113', 'torchvision===0.8.1+cpu', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
-subprocess.call(['conda', 'install', '-c', 'conda-forge', 'multi_rake'])
+subprocess.call(['pip', 'install', 'torch==1.11.0+cu113', 'torchvision==0.12.0+cu113', 'torchaudio===0.11.0+cu113', '-f', 'https://download.pytorch.org/whl/cu113/torch_stable.html'])
+subprocess.call(['conda', 'install', '-y', '-c', 'conda-forge', 'multi_rake'])
 
 deps_ = [
     'ftfy',
