@@ -8,9 +8,9 @@ HERE = pathlib.Path(__file__).parent
 
 
 deps_ = [
-    'torch==1.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html',
-    'torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html',
-    'torchaudio===0.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html'
+    'torch==1.11.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"',
+    'torchvision==0.12.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"',
+    'torchaudio===0.11.0+cu113 -f "https://download.pytorch.org/whl/cu113/torch_stable.html"'
     'ftfy',
     'transformers',
     'huspacy',
