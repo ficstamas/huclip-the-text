@@ -7,13 +7,18 @@ from distutils.errors import DistutilsExecError
 HERE = pathlib.Path(__file__).parent
 
 
-class sdist(sdist_orig):
-    def run(self):
-        try:
-            self.spawn(['requirements_manual.sh', ])
-        except DistutilsExecError:
-            self.warn('Installing dependencies failed')
-        super().run()
+deps_ = [
+    'torch==1.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html',
+    'torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html',
+    'torchaudio===0.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html'
+    'ftfy',
+    'transformers',
+    'huspacy',
+    'beautifulsoup4',
+    'git+https://github.com/openai/CLIP.git',
+    'git+https://github.com/ficstamas/paddle.git',
+    'multi_rake'
+]
 
 
 # The text of the README file
@@ -34,8 +39,6 @@ setuptools.setup(
         "Programming Language :: Python"
     ],
     packages=setuptools.find_packages(),
-    cmdclass={
-        'sdist': sdist
-    },
-    python_requires=">=3.9"
+    python_requires=">=3.9",
+    install_requires=deps_
 )
