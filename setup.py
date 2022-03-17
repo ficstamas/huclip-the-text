@@ -1,13 +1,20 @@
 import pathlib
 import setuptools
+from distutils.command.sdist import sdist as sdist_orig
+from distutils.errors import DistutilsExecError
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
-requirements = HERE / 'requirements.txt'
 
-with requirements.open(mode='rt', encoding='utf-8') as fp:
-    install_requires = [line.strip() for line in fp]
+class sdist(sdist_orig):
+    def run(self):
+        try:
+            self.spawn(['requirements_manual.sh', ])
+        except DistutilsExecError:
+            self.warn('Installing dependencies failed')
+        super().run()
+
 
 # The text of the README file
 README = (HERE / "README.md").read_text()
@@ -27,9 +34,8 @@ setuptools.setup(
         "Programming Language :: Python"
     ],
     packages=setuptools.find_packages(),
-    install_requires=install_requires,
-    dependency_links=[
-        "https://download.pytorch.org/whl/cu113/torch_stable.html",
-    ],
+    cmdclass={
+        'sdist': sdist
+    },
     python_requires=">=3.9"
 )
