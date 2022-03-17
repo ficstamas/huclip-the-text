@@ -17,7 +17,7 @@ subprocess.call(['pip', 'install', 'torch==1.11.0+cu113', 'torchvision==0.12.0+c
 
 deps_ = [
     'ftfy==6.1.1',
-    'numpy==1.22.3',
+    'numpy==1.21.5',
     'transformers==4.17.0',
     'huspacy==0.4.2',
     'beautifulsoup4==4.10.0',
