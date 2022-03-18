@@ -29,4 +29,4 @@ jobs:
       with:
         files: | 
           dist/HuClip_The_Text-*.whl
-          dist/HuClip_The_Text-*.tar.gz
+          dist/HuClip The Text-*.tar.gz
