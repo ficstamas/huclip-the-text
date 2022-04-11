@@ -239,7 +239,7 @@ class KeywordCLIP:
         return logits
 
     def evaluate(self, image: Image.Image, text: str, keyword_extraction_method: Literal["spacy", "rake"] = "spacy"
-                 ) -> Tuple[str, float]:
+                 ) -> Tuple[str, float, Dict]:
         """
         Evaluates model on provided Image and text pair
         :param image: PIL Image
@@ -251,10 +251,13 @@ class KeywordCLIP:
         keywords = {i: key for i, key in enumerate(text_emb)}
         language_logits = self.compare_embeddings(image_emb, text_emb)
         probs = self.probabilities(language_logits)
+
+        out = {}
         for i, kw in keywords.items():
             log.info(f"Probability of the answer '{kw}' is {probs[i, 0]}")
+            out[kw] = probs[i, 0]
         answer = np.argmax(probs, axis=0)[0]
-        return keywords[answer], probs[answer][0]
+        return keywords[answer], probs[answer][0], out
 
     @staticmethod
     def probabilities(language_logits: torch.Tensor) -> np.ndarray:
