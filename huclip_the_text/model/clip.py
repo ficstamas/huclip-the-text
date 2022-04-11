@@ -157,11 +157,11 @@ class KeywordCLIP:
             element = Q.pop()
             children = element.children
             kw = [element.text, context.text, ]
-            for childe in reversed([x for x in children]):
-                if childe.pos_ not in _IGNORED_POS:
-                    if childe.idx < element.idx:
-                        kw.insert(0, childe.text)
-                    Q.append(childe)
+            for child in reversed([x for x in children]):
+                if child.pos_ not in _IGNORED_POS:
+                    if child.idx < element.idx:
+                        kw.insert(0, child.text)
+                    Q.append(child)
             keywords.append((" ".join(kw), 0.0))
 
         return keywords
