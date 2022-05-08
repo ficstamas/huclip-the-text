@@ -48,7 +48,8 @@ log.setLevel(logging.DEBUG)
 
 
 class MultilingualClip(torch.nn.Module):
-    def __init__(self, model_name: str, tokenizer_name: str, head_name: str, weight_link: str, weights_dir='weights/'):
+    def __init__(self, model_name: str, tokenizer_name: str, head_name: str, weight_link: str, weights_dir='weights/',
+                 device='cpu'):
         """
         Every parameter is defined in `AVAILABLE_MODELS` except `weights_dir`
         :param model_name: name of the model
@@ -58,6 +59,7 @@ class MultilingualClip(torch.nn.Module):
         :param weights_dir: folder to store projection weights
         """
         super().__init__()
+        self.device = device
         self.model_name = model_name
         self.tokenizer_name = tokenizer_name
 
@@ -69,8 +71,8 @@ class MultilingualClip(torch.nn.Module):
                      tqdm_params={'desc': 'Downloading Weights:'})
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
-        self.transformer = transformers.AutoModel.from_pretrained(model_name)
-        self.clip_head = torch.nn.Linear(in_features=768, out_features=640)
+        self.transformer = transformers.AutoModel.from_pretrained(model_name).to(self.device)
+        self.clip_head = torch.nn.Linear(in_features=768, out_features=640).to(self.device)
         self._load_head()
 
     def forward(self, txt: str):
@@ -92,26 +94,27 @@ class MultilingualClip(torch.nn.Module):
         """
         with open(self.head_path, 'rb') as f:
             lin_weights = pickle.loads(f.read())
-        self.clip_head.weight = torch.nn.Parameter(torch.tensor(lin_weights[0]).float().t())
-        self.clip_head.bias = torch.nn.Parameter(torch.tensor(lin_weights[1]).float())
+        self.clip_head.weight = torch.nn.Parameter(torch.tensor(lin_weights[0]).float().t()).to(self.device)
+        self.clip_head.bias = torch.nn.Parameter(torch.tensor(lin_weights[1]).float()).to(self.device)
 
 
-def _load_language_model(name: str):
+def _load_language_model(name: str, device: str):
     """
     Loading Language Model
     :param name: name of the model
     :return:
     """
     config = AVAILABLE_MODELS[name]
-    return MultilingualClip(**config)
+    return MultilingualClip(**config, device=device)
 
 
 class KeywordCLIP:
-    def __init__(self, language_model_name: str = 'M-BERT-Distil-40', image_model_name: str = 'RN50x4'):
+    def __init__(self, language_model_name: str = 'M-BERT-Distil-40', image_model_name: str = 'RN50x4', device='cpu'):
         """
         Loading everything
         :param language_model_name: name of the used language model
         :param image_model_name: name of the used image model
+        :param device: Model placement
         """
         # self.rake = Rake(
         #     min_chars=3, max_words=5, min_freq=1,
@@ -122,23 +125,24 @@ class KeywordCLIP:
         # )
 
         log.info(f'Loading language model: HuSpaCy!')
+        self.device = device
         huspacy.download()
         self.spacy = huspacy.load()
         log.info(f'Loading language model: {language_model_name}')
-        self.language_model = _load_language_model(language_model_name)
+        self.language_model = _load_language_model(language_model_name, device=self.device)
         log.info(f'Loading image model: {image_model_name}')
-        self.clip_model, compose = self._load_clip(image_model_name)
+        self.clip_model, compose = self._load_clip(image_model_name, device=self.device)
         log.info(f'Done!')
-        self.compose = lambda img: compose(img).to('cuda')
+        self.compose = lambda img: compose(img).to(self.device)
 
     @staticmethod
-    def _load_clip(image_model_name: str):
+    def _load_clip(image_model_name: str, device: str):
         """
         Loading image model
         :param image_model_name: name of the image model
         :return:
         """
-        return clip.load(image_model_name)
+        return clip.load(image_model_name, device=device)
 
     def extract_keywords_spacy(self, sentence: str) -> List[Tuple[str, float]]:
         """
@@ -195,7 +199,7 @@ class KeywordCLIP:
         log.info(f'Extracted keywords: {[kw[0] for kw in extracted_keywords]}')
 
         with torch.no_grad():
-            image_emb = self.clip_model.encode_image(composed_image).float().to('cuda')
+            image_emb = self.clip_model.encode_image(composed_image).float().to(self.device)
             text_emb = {}
             for kw, _ in extracted_keywords:
                 text_emb[kw] = self.language_model(text + " " + kw)
