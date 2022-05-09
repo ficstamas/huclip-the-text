@@ -12,6 +12,7 @@ from paddle.utils.network import download_url
 from PIL import Image
 from typing import Literal, List, Tuple, Dict
 import warnings
+import pkg_resources
 warnings.filterwarnings("ignore")
 
 AVAILABLE_MODELS = {
@@ -34,6 +35,19 @@ AVAILABLE_MODELS = {
         'head_name': 'M-BERT-Base-69-ViT Linear Weights.pkl',
         'weight_link': 'https://www.dropbox.com/s/wkgy5kjrze6b0i4/M-BERT-Base-69-ViT%20Linear%20Weights.pkl?dl=1'
     },
+}
+
+HUSPACY_MODELS = {
+    "cnn": {
+        "model_name": "hu_core_news_lg",
+        "module_name": "hu-core-news-lg",
+        "extractor_function": "extract_keywords_spacy"
+    },
+    "hubert": {
+        "model_name": "hu_core_news_trf",
+        "module_name": "hu-core-news-trf",
+        "extractor_function": "extract_keywords_spacy_transformers"
+    }
 }
 
 _IGNORED_POS = ["PUNCT", "CCONJ"]
@@ -109,11 +123,13 @@ def _load_language_model(name: str, device: str):
 
 
 class KeywordCLIP:
-    def __init__(self, language_model_name: str = 'M-BERT-Distil-40', image_model_name: str = 'RN50x4', device='cpu'):
+    def __init__(self, language_model_name: str = 'M-BERT-Distil-40', image_model_name: str = 'RN50x4',
+                 spacy_model_name: Literal['cnn', 'hubert'] = 'cnn', device='cpu'):
         """
         Loading everything
         :param language_model_name: name of the used language model
         :param image_model_name: name of the used image model
+        :param spacy_model_name: name of the utilized spacy model
         :param device: Model placement
         """
         # self.rake = Rake(
@@ -126,14 +142,32 @@ class KeywordCLIP:
 
         log.info(f'Loading language model: HuSpaCy!')
         self.device = device
-        huspacy.download()
-        self.spacy = huspacy.load()
+
+        spacy_module_name = HUSPACY_MODELS[spacy_model_name]['module_name']
+        spacy_extractor_name = HUSPACY_MODELS[spacy_model_name]['extractor_function']
+        spacy_model_name = HUSPACY_MODELS[spacy_model_name]['model_name']
+
+        if not self._is_installed(spacy_module_name):
+            huspacy.download(model_name=spacy_model_name)
+
+        self.spacy = huspacy.load(name=spacy_model_name)
+        self.keyword_extractor_function = getattr(self, spacy_extractor_name)
+
         log.info(f'Loading language model: {language_model_name}')
         self.language_model = _load_language_model(language_model_name, device=self.device)
         log.info(f'Loading image model: {image_model_name}')
         self.clip_model, compose = self._load_clip(image_model_name, device=self.device)
         log.info(f'Done!')
         self.compose = lambda img: compose(img).to(self.device)
+
+    @staticmethod
+    def _is_installed(pkg_name: str):
+        """
+        Checks whether a package is installed
+        :param pkg_name:
+        :return:
+        """
+        return pkg_name in {pkg.key for pkg in pkg_resources.working_set}
 
     @staticmethod
     def _load_clip(image_model_name: str, device: str):
@@ -166,10 +200,44 @@ class KeywordCLIP:
         while len(Q) > 0:
             element = Q.pop()
             children = element.children
-            if element.text != context.text:
-                kw = [element.text, context.text, ]
-            else:
-                kw = [element.text, ]
+            kw = [element.text, ]
+
+            for child in reversed([x for x in children]):
+                if child.pos_ not in _IGNORED_POS:
+                    if child.idx < element.idx:
+                        if child.pos_ != element.pos_:
+                            kw.insert(0, child.text)
+                        else:
+                            Q.append(child)
+                    else:
+                        Q.append(child)
+            keywords.append((" ".join(kw), 0.0))
+
+        return keywords
+
+    def extract_keywords_spacy_transformers(self, sentence: str) -> List[Tuple[str, float]]:
+        """
+        Extracting potential keywords using SpaCy
+        :param sentence: Input text
+        :return: List of tuples containing <string, score> pairs
+        """
+        doc = self.spacy(sentence)
+        # find CCONJ's root
+        base_ = [(x.head.head, x.head.head.head) for x in doc if x.pos_ == 'CCONJ']
+        if len(base_) < 1:
+            return [("Sajnos nem értem a kérdést. Megpróbálnád újra?", 0.0)]
+
+        root, context = base_[0]
+        Q = [x for x in context.children if 'amod' in x.dep_]  # amod:att
+        if root not in Q:
+            Q.append(root)
+        keywords = []
+
+        element = None
+        while len(Q) > 0:
+            element = Q.pop()
+            children = element.children
+            kw = [element.text, ]
 
             for child in reversed([x for x in children]):
                 if child.pos_ not in _IGNORED_POS:
@@ -206,7 +274,7 @@ class KeywordCLIP:
         if keyword_extraction_method == "rake":
             raise NotImplementedError(":(")  # extracted_keywords = self.extract_keywords_rake(text)
         elif keyword_extraction_method == "spacy":
-            extracted_keywords = self.extract_keywords_spacy(text)
+            extracted_keywords = self.keyword_extractor_function(text)
         else:
             raise NotImplementedError(":(")
 
