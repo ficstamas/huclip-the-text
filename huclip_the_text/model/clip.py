@@ -152,20 +152,34 @@ class KeywordCLIP:
         """
         doc = self.spacy(sentence)
         # find CCONJ's root
-        root, context = [(x.head.head, x.head.head.head) for x in doc if x.pos_ == 'CCONJ'][0]
-        Q = [root, ]
+        base_ = [(x.head.head, x.head.head.head) for x in doc if x.pos_ == 'CCONJ']
+        if len(base_) < 1:
+            return [("Sajnos nem értem a kérdést. Megpróbálnád újra?", 0.0)]
+
+        root, context = base_[0]
+        Q = [x for x in context.children if 'amod' in x.dep_]  # amod:att
+        if root not in Q:
+            Q.append(root)
         keywords = []
 
         element = None
         while len(Q) > 0:
             element = Q.pop()
             children = element.children
-            kw = [element.text, context.text, ]
+            if element.text != context.text:
+                kw = [element.text, context.text, ]
+            else:
+                kw = [element.text, ]
+
             for child in reversed([x for x in children]):
                 if child.pos_ not in _IGNORED_POS:
                     if child.idx < element.idx:
-                        kw.insert(0, child.text)
-                    Q.append(child)
+                        if child.pos_ != element.pos_:
+                            kw.insert(0, child.text)
+                        else:
+                            Q.append(child)
+                    else:
+                        Q.append(child)
             keywords.append((" ".join(kw), 0.0))
 
         return keywords
