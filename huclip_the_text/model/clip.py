@@ -20,20 +20,22 @@ AVAILABLE_MODELS = {
         'model_name': 'M-CLIP/M-BERT-Distil-40',
         'tokenizer_name': 'M-CLIP/M-BERT-Distil-40',
         'head_name': 'M-BERT Distil 40 Linear Weights.pkl',
-        'weight_link': 'https://www.dropbox.com/s/up9hs6mx62x8qcf/M-BERT%20Distil%2040%20Linear%20Weights.pkl?dl=1'
+        'weight_link': 'https://github.com/ficstamas/huclip-the-text/releases/download/weights/M-BERT.Distil.40.Linear.Weights.pkl',
+        'image_model': 'RN50x4'
     },
-
     'M-BERT-Base-69': {
         'model_name': 'M-CLIP/M-BERT-Base-69',
         'tokenizer_name': 'M-CLIP/M-BERT-Base-69',
         'head_name': 'M-BERT-Base-69 Linear Weights.pkl',
-        'weight_link': 'https://www.dropbox.com/s/axe2pm8hte06gk3/M-BERT-Base-69%20Linear%20Weights.pkl?dl=1'
+        'weight_link': 'https://github.com/ficstamas/huclip-the-text/releases/download/weights/M-BERT-Base-69.Linear.Weights.pkl',
+        'image_model': 'RN50x4'
     },
     'M-BERT-Base-ViT-B': {
         'model_name': 'M-CLIP/M-BERT-Base-ViT-B',
         'tokenizer_name': 'M-CLIP/M-BERT-Base-ViT-B',
         'head_name': 'M-BERT-Base-69-ViT Linear Weights.pkl',
-        'weight_link': 'https://www.dropbox.com/s/wkgy5kjrze6b0i4/M-BERT-Base-69-ViT%20Linear%20Weights.pkl?dl=1'
+        'weight_link': 'https://github.com/ficstamas/huclip-the-text/releases/download/weights/M-BERT-Base-69-ViT.Linear.Weights.pkl',
+        'image_model': 'ViT-B/32'
     },
 }
 
@@ -63,7 +65,7 @@ log.setLevel(logging.DEBUG)
 
 class MultilingualClip(torch.nn.Module):
     def __init__(self, model_name: str, tokenizer_name: str, head_name: str, weight_link: str, weights_dir='weights/',
-                 device='cpu'):
+                 device='cpu', **kwargs):
         """
         Every parameter is defined in `AVAILABLE_MODELS` except `weights_dir`
         :param model_name: name of the model
@@ -81,12 +83,13 @@ class MultilingualClip(torch.nn.Module):
 
         self.head_path = weights_dir + head_name
 
-        download_url(weight_link, output=os.path.join(weights_dir, head_name),
-                     tqdm_params={'desc': 'Downloading Weights:'})
+        if not os.path.exists(self.head_path):
+            download_url(weight_link, output=os.path.join(weights_dir, head_name),
+                         tqdm_params={'desc': 'Downloading Weights:'})
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
         self.transformer = transformers.AutoModel.from_pretrained(model_name).to(self.device)
-        self.clip_head = torch.nn.Linear(in_features=768, out_features=640).to(self.device)
+        self.clip_head = None
         self._load_head()
 
     def forward(self, txt: str):
@@ -108,6 +111,9 @@ class MultilingualClip(torch.nn.Module):
         """
         with open(self.head_path, 'rb') as f:
             lin_weights = pickle.loads(f.read())
+
+        head_shape = lin_weights[0].shape
+        self.clip_head = torch.nn.Linear(in_features=head_shape[0], out_features=head_shape[1]).to(self.device)
         self.clip_head.weight = torch.nn.Parameter(torch.tensor(lin_weights[0]).float().t()).to(self.device)
         self.clip_head.bias = torch.nn.Parameter(torch.tensor(lin_weights[1]).float()).to(self.device)
 
@@ -123,12 +129,11 @@ def _load_language_model(name: str, device: str):
 
 
 class KeywordCLIP:
-    def __init__(self, language_model_name: str = 'M-BERT-Distil-40', image_model_name: str = 'RN50x4',
-                 spacy_model_name: Literal['cnn', 'hubert'] = 'cnn', device='cpu'):
+    def __init__(self, model_name: str = 'M-BERT-Distil-40', spacy_model_name: Literal['cnn', 'hubert'] = 'cnn',
+                 device='cpu'):
         """
         Loading everything
-        :param language_model_name: name of the used language model
-        :param image_model_name: name of the used image model
+        :param model_name: name of the used model
         :param spacy_model_name: name of the utilized spacy model
         :param device: Model placement
         """
@@ -153,12 +158,18 @@ class KeywordCLIP:
         self.spacy = huspacy.load(name=spacy_model_name)
         self.keyword_extractor_function = getattr(self, spacy_extractor_name)
 
+        language_model_name = AVAILABLE_MODELS[model_name]['model_name']
         log.info(f'Loading language model: {language_model_name}')
-        self.language_model = _load_language_model(language_model_name, device=self.device)
+        self.language_model = _load_language_model(model_name, device=self.device)
+        image_model_name = AVAILABLE_MODELS[model_name]['image_model']
         log.info(f'Loading image model: {image_model_name}')
         self.clip_model, compose = self._load_clip(image_model_name, device=self.device)
         log.info(f'Done!')
         self.compose = lambda img: compose(img).to(self.device)
+
+    @staticmethod
+    def available_models():
+        return [x for x in AVAILABLE_MODELS]
 
     @staticmethod
     def _is_installed(pkg_name: str):
@@ -191,6 +202,8 @@ class KeywordCLIP:
             return [("Sajnos nem értem a kérdést. Megpróbálnád újra?", 0.0)]
 
         root, context = base_[0]
+        context_ = [c for c in context.children if c.dep_ == 'obj']
+        context = context_[0] if len(context_) > 0 else context
         Q = [x for x in context.children if 'amod' in x.dep_]  # amod:att
         if root not in Q:
             Q.append(root)
@@ -200,7 +213,7 @@ class KeywordCLIP:
         while len(Q) > 0:
             element = Q.pop()
             children = element.children
-            kw = [element.text, ]
+            kw = [element.text, context.lemma_]
 
             for child in reversed([x for x in children]):
                 if child.pos_ not in _IGNORED_POS:
@@ -260,7 +273,7 @@ class KeywordCLIP:
     #     """
     #     return self.rake.apply(sentence)
 
-    def embedding(self, image: Image.Image, text: str, keyword_extraction_method: Literal["spacy", "rake"] = "spacy"
+    def embedding(self, image: Image.Image, text: str, keyword_extraction_method: Literal["spacy"] = "spacy"
                   ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Embedding the input image and text
