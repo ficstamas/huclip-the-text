@@ -1,10 +1,10 @@
 # The Project
 
-Object identification and question answering. Main goal of the project was to make decisions about images based on questions. You can provide a question to the model which contains possible answers like: 
+Object identification and question answering. Main goal of the project was to make decisions about images based on the provided questions. The question MUST contain the possible answers like: 
 
 '_Is this apple **red** or **blue**?_',
 
-and the model returns an answer based on what's on the image. We extract the keywords with the Hungarian Spacy, so you can just change that part to adapt the model to your language.
+Model returns an answer based on what's on the image. We extract the keywords with the **Hungarian Spacy**, so you can just change that part to adapt the model to your language. Keyword extraction part relies on the `CCONJ` part-of-speech tag so you also need to include a word that fulfils that role (like `or`).
 
 # Installation & Requirements
 
